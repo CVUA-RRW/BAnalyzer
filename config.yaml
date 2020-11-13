@@ -1,0 +1,9 @@
+# Fill in the path belows with your own specifications:
+workdir:                # Path to output directory
+blast_db:               # Path to BLAST-formated database
+taxdb:                  # Path to the folder containing the taxdb files
+
+# Modify the parameters below:
+trim_primers: False     # True to trim primers from sequences
+primers: None           # Path to the fasta file containing primer sequences, required only if trim_primers is True
+min_identity: 0.9       # Minimal identity level to compute Hamming distance (real between 0 and 1)

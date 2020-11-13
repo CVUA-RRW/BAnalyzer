@@ -1,0 +1,162 @@
+---
+title: "barcodeAnalyzer - Barcode sequence analysis report"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+theme: default
+---
+
+<style type="text/css">
+.main-container {
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(out.width = '80%',fig.asp= 0.5,fig.align='center',echo=FALSE, warning=FALSE, message=FALSE)
+options(markdown.HTML.header = system.file("misc", "datatables.html", package = "knitr"))
+
+library(DT, quietly = T)
+library(tidyverse, quietly = T)
+library(plotly, quietly = T)
+
+executor <- Sys.info()["user"]
+```
+
+---
+author: `r paste0(executor)`
+---
+
+```{r init}
+workdir <- snakemake@params[["workdir"]]
+
+distanceTable <- snakemake@input[["dist"]]
+sizeHist <- snakemake@input[["sizedist"]]
+nsequences <- snakemake@input[["seq"]]
+ntaxids <- snakemake@input[["taxids"]]
+
+trimming <- snakemake@params[["trimming"]]
+database <- snakemake@params[["database"]]
+identity <- snakemake@params[["id"]]
+primers <- snakemake@params[["primers"]]
+
+```
+
+# Analysis report for database: `r basename(database)` {.tabset}
+
+## Overview
+
+* Database path: `r database`
+
+* Number of sequences in database: `r scan(nsequences)`
+
+* Number of taxids in database: `r scan(ntaxids)`
+
+* Run directory: `r workdir`
+
+* Primers were trimmed before alignment: `r trimming`
+
+```{r primer_file, results='asis', eval=trimming}
+cat("* Primer file: ", primers) 
+```
+
+## Pairwise distances
+
+
+Pairwise comparison of sequences with less than `r identity*100`% identity was not performed.
+
+
+```{r distances}
+data_table <- read.csv(file = distanceTable, sep = '\t', check.names = FALSE)
+datatable(data_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
+		extensions= list("ColReorder" = NULL, "Buttons" = NULL),
+		options = list(	
+					dom = 'BRrlftpi',
+					autoWidth=FALSE,
+					scrollX = TRUE,
+					lengthMenu = list(c(10, 50, 100, -1), c('10', '50', '100', 'All')),
+					ColReorder = TRUE,
+					buttons =
+					list(
+						'copy',
+						'print',
+						list(
+						extend = 'collection',
+						buttons = c('csv', 'excel', 'pdf'),
+						text = 'Download'
+						),
+						I('colvis')
+						)
+						))
+```
+
+*Distance is given as the Hamming distance of the global pairwise alignment: each mismatch and gap adds one to the pairwise distance*
+
+## Distance distribution
+
+```{r dist_dist}
+p <- ggplot(data_table, aes(x=distance)) +
+		geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+		labs(title="Distance distribution", x="Hamming distance", y= "Count") +
+		theme_classic()
+		
+ggplotly(p)
+```
+
+*This graph excludes self-comparisons and considers **both** orientations for each pair*
+
+## Sequence lengths
+
+```{r sizes}
+size_table <- read.csv(sizeHist, sep = '\t', check.names = FALSE)
+datatable(size_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
+		extensions= list("ColReorder" = NULL, "Buttons" = NULL),
+		options = list(	
+					dom = 'BRrlftpi',
+					autoWidth=FALSE,
+					scrollX = TRUE,
+					lengthMenu = list(c(10, 50, 100, -1), c('10', '50', '100', 'All')),
+					ColReorder = TRUE,
+					buttons =
+					list(
+						'copy',
+						'print',
+						list(
+						extend = 'collection',
+						buttons = c('csv', 'excel', 'pdf'),
+						text = 'Download'
+						),
+						I('colvis')
+						)
+						))
+```
+
+## Sequence size distribution
+
+```{r size_dist}
+
+l <- htmltools::tagList()
+
+if (trimming) {
+	praw <- ggplot(size_table, aes(x=db_length)) +
+			geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+			labs(title="Length distribution of original sequences", x="Length [bp]", y= "Count") +
+			theme_classic()
+	l[['praw']] <- ggplotly(praw)
+		
+	ptrim <- ggplot(size_table, aes(x=trim_length)) +
+			geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+			labs(title="Length distribution of trimmed sequences", x="Length [bp]", y= "Count") +
+			theme_classic()
+	l[['ptrim']] <- ggplotly(ptrim)
+} else {
+	p <- ggplot(size_table, aes(x=length)) +
+			geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+			labs(title="Length distribution of sequences", x="Length [bp]", y= "Count") +
+			theme_classic()
+	l[['p']] <- ggplotly(p)
+}
+l
+```

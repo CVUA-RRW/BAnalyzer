@@ -1,0 +1,13 @@
+name: rmarkdown
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - r
+dependencies:
+  - r-dt=0.5
+  - r-rmarkdown=1.12
+  - r-knitr=1.28
+  - r-tidyverse=1.2.1
+  - r-plotly=4.9.0
+  - pandoc=2.9.1.1
