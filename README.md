@@ -76,7 +76,7 @@ calculated only on the trimmed sequences.
 
 ## Output
 
-The pipeline produces an HTML report localted in `workdir/reports` as well as different
+The pipeline produces an HTML report located in `workdir/reports` as well as different
 CSV files that can be programmatically used for further analysis. 
 
 ## Credits
