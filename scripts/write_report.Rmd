@@ -1,5 +1,5 @@
 ---
-title: "barcodeAnalyzer - Barcode sequence analysis report"
+title: "BAnalyzer - Barcode sequence analysis report"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 theme: default

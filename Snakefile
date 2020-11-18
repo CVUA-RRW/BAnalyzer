@@ -17,7 +17,14 @@ rule all:
         
 # Workflow ------------------------------------------------------------------------------------------------------------------
 
+# Insert Selective retrieval of FASTA by taxid groups and dereplication
+# Output a dereplication table looking like:
+#     taxid sciname centroid_acc clustered_acc
+# Could work in a loop to avoid generating 1000s of files.
+# e.g. blasdbcmd -taxid -oufmt %f | vsearch merge_exact >> fasta
+
 rule export_fasta:
+    # FIXME: Export %a%T%S once and use join to collect infos
     output:
         seq = temp("fasta/sequences.fa"),
         taxids = temp("fasta/taxids.txt")
@@ -71,13 +78,10 @@ rule pariwise_alignement:
         "envs/vsearch.yaml"
     shell:
         """
-        # Tweaking gap openings and extension penalties to force global alignement
-        # Sequences should be aligned end-to-end and mismatch be favored in comparison to gaps
-        # No terminal gaps! At least for alignments with a reasonnable identity.
         vsearch --allpairs_global {input} \
-                --iddef 3 \
+                --iddef 1 \
                 --gapext 2I/2E \
-                --gapopen 20I/200E \
+                --gapopen 20I/20E \
                 --threads {threads} \
                 --id {params.id} \
                 --userout {output.table} \
@@ -88,6 +92,7 @@ rule pariwise_alignement:
         """
 
 rule collect_descriptors:
+    # FIXME: Export %a%T%S once and use join to collect infos
     input:
         "pairwise_alignment/table.tsv"
     output:
@@ -127,6 +132,7 @@ rule collect_descriptors:
         """
 
 rule seq_sizes_raw:
+    # FIXME: Export %a%T%S once and use join to collect infos
     input:
         raw = "fasta/sequences.fa",
         trimmed = "fasta/sequences_trim.fa" if config["trim_primers"] == True else "fasta/sequences.fa"
