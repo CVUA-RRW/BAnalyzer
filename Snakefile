@@ -13,35 +13,104 @@ rule all:
         "pairwise_alignment/alignments.txt",
         "reports/distances.tsv",
         "reports/sequence_lengths.txt",
+        "reports/dereplication.tsv",
         "reports/report.html"
         
 # Workflow ------------------------------------------------------------------------------------------------------------------
 
-# Insert Selective retrieval of FASTA by taxid groups and dereplication
-# Output a dereplication table looking like:
-#     taxid sciname centroid_acc clustered_acc
-# Could work in a loop to avoid generating 1000s of files.
-# e.g. blasdbcmd -taxid -oufmt %f | vsearch merge_exact >> fasta
+# Check derep behavious for non-redundant db
 
-rule export_fasta:
-    # FIXME: Export %a%T%S once and use join to collect infos
+# Add derep report to hml
+
+# Rework blast query for %T and %S
+
+rule export_dbinfo:
     output:
-        seq = temp("fasta/sequences.fa"),
-        taxids = temp("fasta/taxids.txt")
+        temp("db_info.txt")
     params:
         blast_DB = config["blast_db"],
         taxdb = config["taxdb"]
-    message: "Exporting fasta file"
+    message: "Exporting database information"
+    conda:
+        "envs/blast.yaml"
+    shell:
+        """
+        export BLASTDB={params.taxdb}
+        blastdbcmd -db {params.blast_DB} -entry all -outfmt '%a\t%T\t%S' > {output}
+        """
+        
+rule export_sequences:
+    input:
+        "db_info.txt"
+    output:
+        temp(dynamic("fastadump/{taxid}.fa"))
+    params:
+        blast_DB = config["blast_db"],
+        taxdb = config["taxdb"]
+    message: "Exporting sequences"
     conda:
         "envs/blast.yaml"
     shell:
         """
         export BLASTDB={params.taxdb}
         
-        blastdbcmd -db {params.blast_DB} -entry all -outfmt '%f' > {output.seq}
-        blastdbcmd -db {params.blast_DB} -entry all -outfmt '%T' | sort -u > {output.taxids}
+        for tax in $(cut -d$'\t' -f2 {input} | sort -u); do
+            # retrieving sequences per taxa
+            blastdbcmd -db {params.blast_DB} -taxids $tax -outfmt '%f' \
+                > fastadump/$tax.fa
+        done
+        """
+        
+rule dereplicate:
+    input: 
+        dynamic("fastadump/{taxid}.fa")
+    output:
+        report = temp("derepdump/dereplication.tsv"),
+        fasta = temp("fasta/sequences.fa"),
+        tmpfa  = temp("derepdump/derep.fa"),
+        tmptab = temp("derepdump/derep.txt")
+    message: "Dereplicating sequences"
+    conda:
+        "envs/vsearch.yaml"
+    shell:
+        """
+        for file in {input}; do
+            if [ $(grep -c '^>' $file) -eq 1 ]; then
+                cat $file >> {output.fasta}
+            
+            else
+                vsearch --derep_fulllength $file \
+                        --output {output.tmpfa} \
+                        --uc {output.tmptab} \
+                        --quiet
+                
+                cat {output.tmpfa} >> {output.fasta}
+                
+                grep -E '^[S|H]' {output.tmptab} \
+                     | cut -d$'\t' -f1,9,10 \
+                     >> {output.report}
+            fi
+        done
         """
 
+rule derep_stats:
+    input:
+        derep = "derepdump/dereplication.tsv",
+        table = "db_info.txt"
+    output:
+        "reports/dereplication.tsv"
+    message: "Collecting dereplication stats"
+    shell:
+        """
+        join --nocheck-order -1 2 -2 1 -t $'\t' \
+             <(sort -k2 {input.derep}) \
+             <(sort -k1 {input.table}) \
+             | sed -e 's/\tH\t/\thit\t/' -e 's/\tS\t/\tcentroid\t/' \
+             > {output}
+        
+        sed -i '1 i\seqid\ttype\tcentroid\ttaxid\tname' {output}
+    """
+    
 rule trim_primers:
     input:
         "fasta/sequences.fa"
@@ -193,13 +262,13 @@ rule seq_sizes_raw:
 rule db_stats:
     input:
         seq = "fasta/sequences.fa",
-        taxids = "fasta/taxids.txt"
+        table = "db_info.txt"
     output:
         taxids = temp("reports/taxids_number.txt"),
         seq = temp("reports/seq_number.txt")
     shell:
         """
-        wc -l {input.taxids} | cut -d$' ' -f1 > {output.taxids}
+        wc -l {input.table} | cut -d$' ' -f1 > {output.taxids}
         grep -c "^>" {input.seq} > {output.seq}
         """
 
