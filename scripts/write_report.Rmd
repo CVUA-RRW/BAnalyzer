@@ -36,6 +36,8 @@ distanceTable <- snakemake@input[["dist"]]
 sizeHist <- snakemake@input[["sizedist"]]
 nsequences <- snakemake@input[["seq"]]
 ntaxids <- snakemake@input[["taxids"]]
+derep <- snakemake@input[["derep"]]
+nderep <- snakemake@input[["nderep"]]
 
 trimming <- snakemake@params[["trimming"]]
 database <- snakemake@params[["database"]]
@@ -52,6 +54,8 @@ primers <- snakemake@params[["primers"]]
 
 * Number of sequences in database: `r scan(nsequences)`
 
+* Number of dereplicated sequences: `r scan(nderep)`
+
 * Number of taxids in database: `r scan(ntaxids)`
 
 * Run directory: `r workdir`
@@ -67,6 +71,7 @@ cat("* Primer file: ", primers)
 
 Pairwise comparison of sequences with less than `r identity*100`% identity was not performed.
 
+*Distance is given as the Hamming distance of the global pairwise alignment: each mismatch and gap adds one to the pairwise distance*
 
 ```{r distances}
 data_table <- read.csv(file = distanceTable, sep = '\t', check.names = FALSE)
@@ -92,7 +97,6 @@ datatable(data_table, filter = list(position = 'top'), rownames = FALSE, escape 
 						))
 ```
 
-*Distance is given as the Hamming distance of the global pairwise alignment: each mismatch and gap adds one to the pairwise distance*
 
 ## Distance distribution
 
@@ -105,7 +109,7 @@ p <- ggplot(data_table, aes(x=distance)) +
 ggplotly(p)
 ```
 
-*This graph excludes self-comparisons and considers **both** orientations for each pair*
+*This graph excludes self-comparisons and considers only one orientation for each pair*
 
 ## Sequence lengths
 
@@ -160,3 +164,48 @@ if (trimming) {
 }
 l
 ```
+
+## Sequence cluster
+
+*Sequences are clustered by exact sequence match within a taxid.*
+*Ambiguous characters are treated as a mismatch for clustering but always result in a match for identity calculation.*
+
+```{r clusters}
+derep_table <- read.csv(derep, sep = '\t', check.names = FALSE)
+datatable(derep_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
+		extensions= list("ColReorder" = NULL, "Buttons" = NULL),
+		options = list(	
+					dom = 'BRrlftpi',
+					autoWidth=FALSE,
+					scrollX = TRUE,
+					lengthMenu = list(c(10, 50, 100, -1), c('10', '50', '100', 'All')),
+					ColReorder = TRUE,
+					buttons =
+					list(
+						'copy',
+						'print',
+						list(
+						extend = 'collection',
+						buttons = c('csv', 'excel', 'pdf'),
+						text = 'Download'
+						),
+						I('colvis')
+						)
+						))
+```
+
+## Cluster sizes
+
+```{r cluster_size}
+p <- derep_table %>% 
+		count(centroid) %>% 
+		mutate(count=n+1) %>% 
+		filter(centroid != "*") %>% 
+		ggplot(aes(x=count)) +
+			geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+			labs(title="Cluster size distribution", x="Cluster size", y= "Count") +
+			theme_classic()
+ggplotly(p)
+```
+
+*Unique sequences are not shown*

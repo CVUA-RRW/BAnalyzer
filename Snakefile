@@ -1,3 +1,4 @@
+# TODO: Deal with ambiguous characters?
 
 shell.executable("bash")
 
@@ -18,11 +19,7 @@ rule all:
         
 # Workflow ------------------------------------------------------------------------------------------------------------------
 
-# Check derep behavious for non-redundant db
-
-# Add derep report to hml
-
-# Rework blast query for %T and %S
+# Add derep report to html
 
 rule export_dbinfo:
     output:
@@ -161,9 +158,9 @@ rule pariwise_alignement:
         """
 
 rule collect_descriptors:
-    # FIXME: Export %a%T%S once and use join to collect infos
     input:
-        "pairwise_alignment/table.tsv"
+        aln = "pairwise_alignment/table.tsv",
+        info = "db_info.txt"
     output:
         report = "reports/distances.tsv",
         queries = temp("queries.txt"),
@@ -180,22 +177,22 @@ rule collect_descriptors:
         export BLASTDB={params.taxdb}
         
         # Separate query and target lists
-        cat {input} | tail -n+2 | cut -d$'\t' -f1 | cut -d'.' -f1 > {output.queries}
-        cat {input} | tail -n+2 | cut -d$'\t' -f2 > {output.targets}
+        cat {input.aln} | tail -n+2 | cut -d$'\t' -f1 > {output.queries}
+        cat {input.aln} | tail -n+2 | cut -d$'\t' -f2 > {output.targets}
 
         # calculate difference
-        awk -F$'\t' '{{print $4+$5}}' {input} | tail -n+2 > {output.dist}
+        awk -F$'\t' '{{print $4+$5}}' {input.aln} | tail -n+2 > {output.dist}
 
         # Merge files
         paste <(blastdbcmd -entry_batch {output.queries} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
               <(blastdbcmd -entry_batch {output.targets} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
               <(cat {output.dist}) \
               > {output.report}
-        # Add reverse orientation - Output from Vsearch is non-redundant
-        paste <(blastdbcmd -entry_batch {output.targets} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-              <(blastdbcmd -entry_batch {output.queries} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-              <(cat {output.dist}) \
-              >> {output.report}
+        # Add reverse orientation - Output from Vsearch is non-redundant TABLE TOO BIG
+        # paste <(blastdbcmd -entry_batch {output.targets} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
+              # <(blastdbcmd -entry_batch {output.queries} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
+              # <(cat {output.dist}) \
+              # >> {output.report}
 
         sed -i '1 i\query\tquery_taxid\tquery_name\ttarget\ttarget_taxid\ttarget_name\tdistance' {output.report}
         """
@@ -262,14 +259,16 @@ rule seq_sizes_raw:
 rule db_stats:
     input:
         seq = "fasta/sequences.fa",
-        table = "db_info.txt"
+        table = "db_info.txt",
     output:
         taxids = temp("reports/taxids_number.txt"),
-        seq = temp("reports/seq_number.txt")
+        nseq = temp("reports/seq_number.txt"),
+        derep = temp("reports/derep_number.txt")
     shell:
         """
-        wc -l {input.table} | cut -d$' ' -f1 > {output.taxids}
-        grep -c "^>" {input.seq} > {output.seq}
+        cut -d$'\t' -f2 {input.table} | sort -u | wc -l | cut -d$' ' -f1 > {output.taxids}
+        wc -l {input.table} | cut -d$' ' -f1 > {output.nseq}
+        grep -c "^>" {input.seq} > {output.derep}
         """
 
 rule write_report:
@@ -277,7 +276,9 @@ rule write_report:
         seq = "reports/seq_number.txt",
         taxids = "reports/taxids_number.txt",
         dist = "reports/distances.tsv",
-        sizedist = "reports/sequence_lengths.txt"
+        sizedist = "reports/sequence_lengths.txt",
+        derep = "reports/dereplication.tsv",
+        nderep = "reports/derep_number.txt"
     output:
         "reports/report.html"
     params:
