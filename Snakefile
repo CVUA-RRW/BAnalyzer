@@ -73,10 +73,7 @@ rule dereplicate:
     shell:
         """
         for file in {input}; do
-            # if [ $(grep -c '^>' $file) -eq 1 ]; then
-                # cat $file >> {output.fasta}
-            
-            # else
+                
                 vsearch --cluster_fast $file \
                         --id 1 \
                         --iddef 1 \
@@ -89,7 +86,6 @@ rule dereplicate:
                 grep -E '^[S|H]' {output.tmptab} \
                      | cut -d$'\t' -f1,9,10 \
                      >> {output.report}
-            # fi
         done
         """
 
@@ -198,7 +194,6 @@ rule pariwise_alignement:
         """
 
 rule collect_descriptors:
-    # REWORK pandas?
     input:
         aln = "pairwise_alignment/table.tsv",
         info = "db_info.txt",
@@ -237,64 +232,64 @@ rule collect_descriptors:
                         
         dfout.to_csv(output[0], sep='\t', index=False)
         
-rule seq_sizes_raw:
-    # REWORK pandas?
+rule get_seq_sizes:
     input:
         raw = "fasta/sequences.fa",
         trimmed = "fasta/sequences_trim.fa" if config["trim_primers"] == True else "fasta/sequences.fa"
     output:
         raw = temp("reports/fasta_length_raw.tsv"),
-        ids = temp("reports/seqids.txt"),
-        length_raw = temp("reports/length_raw.txt"),
-        length_trim = temp("reports/length_trim.txt"),
-        table = "reports/sequence_lengths.txt"
+        length_trim = temp("reports/fasta_length_trim.txt"),
     params:
-        blast_DB = config["blast_db"],
-        taxdb = config["taxdb"],
         trim = config["trim_primers"]
     message: "Getting sequence length distribution"
-    conda:
-        "envs/blast.yaml"
     shell:
         """
-        export BLASTDB={params.taxdb}
-        
         # Get seqid length table
         cat {input.raw} \
             | awk '$0 ~ ">" {{if (NR > 1) {{print c;}} c=0;printf substr($0,2,100) "\t"; }} $0 !~ ">" {{c+=length($0);}} END {{ print c; }}' \
-            | sort -k1 \
             > {output.raw}
-        
-        # split seqids for blast input
-        cat {output.raw} | cut -d$'\t' -f1 | cut -d'.' -f1 > {output.ids}
-        cat {output.raw} | cut -d$'\t' -f2 > {output.length_raw}
         
         if [ {params.trim} = "True" ]; then
             # get trimmed lengths
             cat {input.trimmed} \
                 | awk '$0 ~ ">" {{if (NR > 1) {{print c;}} c=0;printf substr($0,2,100) "\t"; }} $0 !~ ">" {{c+=length($0);}} END {{ print c; }}' \
-                | sort -k1 \
-                | cut -d$'\t' -f2 \
                 > {output.length_trim}
             
-            # merge infos
-            paste <(blastdbcmd -entry_batch {output.ids} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-                  <(cat {output.length_raw}) \
-                  <(cat {output.length_trim}) \
-                  > {output.table}
-            # Add header
-            sed -i '1 i\seqid\ttaxid\tname\tdb_length\ttrim_length' {output.table}
-        
         else
             # if not trimming, just merge infos
             touch {output.length_trim} # otherwise snakemake complains about missing output
-            paste <(blastdbcmd -entry_batch {output.ids} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-                  <(cat {output.length_raw}) \
-                  > {output.table}
-            # Add header
-            sed -i '1 i\seqid\ttaxid\tname\tlength' {output.table}
+        
         fi
         """
+
+rule seq_size_table:
+    input:
+        raw = "reports/fasta_length_raw.tsv",
+        trim = "reports/fasta_length_trim.txt",
+        info = "db_info.txt"
+    output:
+        "reports/sequence_lengths.txt"
+    params:
+        trim = config["trim_primers"]
+    message: "Formatting sequence length table"
+    run:
+        dfinfo = pd.read_csv(input.info, sep = '\t', names = ["seqid", "taxid", "name"])
+        dfraw = pd.read_csv(input.raw, sep = '\t', names = ["seqid", "length"])
+        
+        dfoutraw = dfraw.join(dfinfo.set_index("seqid"),
+                              on = "seqid", how = "inner")
+        
+        if params.trim:
+            dfout = dfoutraw.rename(columns={'length': 'db_length'})
+            dftrim = pd.read_csv(input.trim, sep = '\t', names = ["seqid", "length"])
+            dfout = dfout.join(dftrim.set_index('seqid'),
+                               on = 'seqid', how = 'inner').rename(columns = {'length' : 'trim_length'})
+            dfout = dfout[['seqid', 'taxid', 'name', 'db_length', 'trim_length']]
+            dfout.to_csv(output[0], sep = '\t', index = False)
+        
+        else:
+            dfoutraw = dfoutraw[['seqid', 'taxid', 'name', 'length']]
+            dfoutraw.to_csv(output[0], sep = '\t', index = False)
 
 rule db_stats:
     input:
