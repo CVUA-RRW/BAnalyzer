@@ -1,8 +1,8 @@
 # BAnalyzer - Barcode Analyzer for metabarcoding experiments
 
 This pipeline provides some basic quality controls of a collection of barcode 
-sequences for Metabarcoding experiments: Hamming distance and sequence 
-size distribution so far.
+sequences for Metabarcoding experiments: taxid-wise dereplication, Hamming distance and sequence 
+size distribution.
 
 ## Getting started
 
@@ -24,7 +24,7 @@ git clone https://github.com/CVUA-RRW/BAnalyzer.git
 Set up a conda environment containing snakemake, python and the pandas library and activate it:
 
 ```bash
-conda create --name snakemake -c bioconda -c anaconda snakemake
+conda create --name snakemake -c bioconda -c anaconda snakemake pandas
 conda activate snakemake
 ```
 
@@ -68,11 +68,20 @@ taxdb:                  # Path to the folder containing the taxdb files
 trim_primers: False     # True to trim primers from sequences
 primers: None           # Path to the fasta file containing primer sequences, required only if trim_primers is True
 min_identity: 0.9       # Minimal identity level to compute Hamming distance (real between 0 and 1)
+max_n: 3                # Maximum number of N nucleotides allowed per sequence, sequences with more will be discarded
 ```
 
 If choosing to trim primer sequences from the barcodes, both the original and 
 trimmed length will be shown in the report, but the Hamming-distance will be 
 calculated only on the trimmed sequences.
+
+### Taxid-wise clustering
+
+Sequences within a Taxonomic node will be clustered prior to the alignement and calculation of the Hamming distance.
+This allows to reduce redundancy in the database. Dereplication is performed by grouping 
+sequences with 100% identity **within a taxonomic node**. 
+Note that alignement of ambiguous nucleotides **always** does not incure a penalty. Therefore sequences
+containing ambiguous nuclotides can be clustered with sequences that contain strict nucleotide (A, T, U, C, G). 
 
 ## Output
 
@@ -98,6 +107,6 @@ This project is licensed under a BSD 3-Clauses License, see the LICENSE file for
 
 For questions about the pipeline, problems, suggestions or requests, feel free to contact:
 
-Gr√©goire Denay, Chemisches- und Veterin√§r-Untersuchungsamt Rhein-Ruhr-Wupper 
+GrÈgoire Denay, Chemisches- und Veterin‰r-Untersuchungsamt Rhein-Ruhr-Wupper 
 
 <gregoire.denay@cvua-rrw.de>
