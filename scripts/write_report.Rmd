@@ -224,15 +224,24 @@ datatable(clusize_table, filter = list(position = 'top'), rownames = FALSE, esca
 ## Cluster size distribution
 
 ```{r cluster_size}
-p <- derep_table %>% 
-		count(centroid) %>% 
-		mutate(count=n+1) %>% 
-		filter(centroid != "*") %>% 
-		ggplot(aes(x=count)) +
-			geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
-			labs(title="Cluster size distribution", x="Cluster size", y= "Count") +
-			theme_classic()
-ggplotly(p)
+p1 <- ggplot(clusize_table, aes(x=cluster_size)) +
+		geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+		labs(title="Cluster size distribution", x="Cluster size", y= "Count") +
+		theme_classic()
+ggplotly(p1)
+
+p2 <- clusize_table %>% distinct(taxid, .keep_all=TRUE) %>%
+		ggplot(aes(x=tax_size)) +
+		geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+		labs(title="Number of sequences per taxid", x="Number of sequences", y= "Count") +
+		theme_classic()
+ggplotly(p2)
+
+p3 <- clusize_table %>% count(taxid) %>%
+		ggplot(aes(x=n)) +
+		geom_histogram(binwidth = 1, color = 'black', fill = 'grey') +
+		labs(title="Number of clusters per taxid", x="Number of clusters", y= "Count") +
+		theme_classic()
+ggplotly(p3)
 ```
 
-*Unique sequences are not shown*
