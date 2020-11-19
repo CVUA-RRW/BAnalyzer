@@ -201,43 +201,42 @@ rule collect_descriptors:
     # REWORK pandas?
     input:
         aln = "pairwise_alignment/table.tsv",
-        info = "db_info.txt"
+        info = "db_info.txt",
+        sizes = "reports/cluster_size.tsv"
     output:
-        report = "reports/distances.tsv",
-        queries = temp("queries.txt"),
-        targets = temp("targets.txt"),
-        dist = temp("distances.txt")
-    params:
-        blast_DB = config["blast_db"],
-        taxdb = config["taxdb"]
+        "reports/distances.tsv",
     message: "Collecting sequence informations"
-    conda: 
-        "envs/blast.yaml"
-    shell:
-        """
-        export BLASTDB={params.taxdb}
+    run:
+        dfaln = pd.read_csv(input.aln, sep='\t', names= ["query", "target", "id", "mismatch", "gaps","aln_length", "qstart", "qend", "qlength", "tstart", "tend", "tlength"])
+        dfinfo = pd.read_csv(input.info, sep = '\t', names = ["seqid", "taxid", "name"])
+        dfsize = pd.read_csv(input.sizes, sep = '\t')
+
+        dfout = pd.DataFrame({"query": dfaln["query"],
+                              "target": dfaln["target"],
+                              "distance": dfaln["mismatch"] + dfaln["gaps"]})
+
+        dfout = dfout.join(dfinfo.set_index("seqid"), 
+                            on = "query", how = "inner").rename(columns={'taxid' : 'query_taxid', 
+                                                                         'name' : 'query_name'})
+                                                                         
+        dfout = dfout.join(dfinfo.set_index("seqid"), 
+                            on = "target", how = "inner").rename(columns={'taxid' : 'target_taxid', 
+                                                                         'name' : 'target_name'})
+                                                                         
+        dfout = dfout.join(dfsize.set_index("seqid")[['size', 'rel_cluster_size']], 
+                            on = "query", how = "inner").rename(columns={'size' : 'query_size', 
+                                                                         'rel_cluster_size' : 'query_relsize'})
+                                                                         
+        dfout = dfout.join(dfsize.set_index("seqid")[['size', 'rel_cluster_size']], 
+                            on = "target", how = "inner").rename(columns={'size' : 'target_size', 
+                                                                         'rel_cluster_size' : 'target_relsize'})
+                                                                         
+        dfout = dfout[['query', 'query_taxid', 'query_name', 'query_size', 'query_relsize',
+                        'target', 'target_taxid', 'target_name', 'target_size', 'target_relsize',
+                        'distance']]
+                        
+        dfout.to_csv(output[0], sep='\t', index=False)
         
-        # Separate query and target lists
-        cat {input.aln} | tail -n+2 | cut -d$'\t' -f1 > {output.queries}
-        cat {input.aln} | tail -n+2 | cut -d$'\t' -f2 > {output.targets}
-
-        # calculate difference
-        awk -F$'\t' '{{print $4+$5}}' {input.aln} | tail -n+2 > {output.dist}
-
-        # Merge files
-        paste <(blastdbcmd -entry_batch {output.queries} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-              <(blastdbcmd -entry_batch {output.targets} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-              <(cat {output.dist}) \
-              > {output.report}
-        # Add reverse orientation - Output from Vsearch is non-redundant TABLE TOO BIG
-        # paste <(blastdbcmd -entry_batch {output.targets} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-              # <(blastdbcmd -entry_batch {output.queries} -db {params.blast_DB} -outfmt '%a\t%T\t%S') \
-              # <(cat {output.dist}) \
-              # >> {output.report}
-
-        sed -i '1 i\query\tquery_taxid\tquery_name\ttarget\ttarget_taxid\ttarget_name\tdistance' {output.report}
-        """
-
 rule seq_sizes_raw:
     # REWORK pandas?
     input:
