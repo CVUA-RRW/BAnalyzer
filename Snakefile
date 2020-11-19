@@ -73,10 +73,10 @@ rule dereplicate:
     shell:
         """
         for file in {input}; do
-            if [ $(grep -c '^>' $file) -eq 1 ]; then
-                cat $file >> {output.fasta}
+            # if [ $(grep -c '^>' $file) -eq 1 ]; then
+                # cat $file >> {output.fasta}
             
-            else
+            # else
                 vsearch --cluster_fast $file \
                         --id 1 \
                         --iddef 1 \
@@ -89,7 +89,7 @@ rule dereplicate:
                 grep -E '^[S|H]' {output.tmptab} \
                      | cut -d$'\t' -f1,9,10 \
                      >> {output.report}
-            fi
+            # fi
         done
         """
 
