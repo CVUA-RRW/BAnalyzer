@@ -39,6 +39,7 @@ ntaxids <- snakemake@input[["taxids"]]
 derep <- snakemake@input[["derep"]]
 nderep <- snakemake@input[["nderep"]]
 nNfilt <- snakemake@input[["nNfilt"]]
+clusterSize <- snakemake@input[["clusterSize"]]
 
 trimming <- snakemake@params[["trimming"]]
 database <- snakemake@params[["database"]]
@@ -170,9 +171,6 @@ l
 
 ## Sequence cluster
 
-*Sequences are clustered by exact sequence match within a taxid.*
-*Ambiguous characters are treated as a mismatch for clustering but always result in a match for identity calculation.*
-
 ```{r clusters}
 derep_table <- read.csv(derep, sep = '\t', check.names = FALSE)
 datatable(derep_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
@@ -198,6 +196,32 @@ datatable(derep_table, filter = list(position = 'top'), rownames = FALSE, escape
 ```
 
 ## Cluster sizes
+
+```{r clustersize}
+clusize_table <- read.csv(clusterSize, sep = '\t', check.names = FALSE)
+datatable(clusize_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
+		extensions= list("ColReorder" = NULL, "Buttons" = NULL),
+		options = list(	
+					dom = 'BRrlftpi',
+					autoWidth=FALSE,
+					scrollX = TRUE,
+					lengthMenu = list(c(10, 50, 100, -1), c('10', '50', '100', 'All')),
+					ColReorder = TRUE,
+					buttons =
+					list(
+						'copy',
+						'print',
+						list(
+						extend = 'collection',
+						buttons = c('csv', 'excel', 'pdf'),
+						text = 'Download'
+						),
+						I('colvis')
+						)
+						))
+```
+
+## Cluster size distribution
 
 ```{r cluster_size}
 p <- derep_table %>% 

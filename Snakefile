@@ -1,3 +1,4 @@
+import pandas as pd
 
 shell.executable("bash")
 
@@ -14,6 +15,7 @@ rule all:
         "reports/distances.tsv",
         "reports/sequence_lengths.txt",
         "reports/dereplication.tsv",
+        "reports/cluster_size.tsv",
         "reports/report.html"
         
 # Workflow ------------------------------------------------------------------------------------------------------------------
@@ -109,6 +111,26 @@ rule derep_stats:
         
         sed -i '1 i\seqid\ttype\tcentroid\ttaxid\tname' {output}
     """
+    
+rule cluster_size:
+    input:
+        "reports/dereplication.tsv"
+    output: 
+        "reports/cluster_size.tsv"
+    message: "Collecting cluster sizes"
+    run:
+        df = pd.read_csv(input[0], sep= '\t')
+        taxcount =  df.groupby('taxid').agg('count')['seqid'].rename('tax_size')
+        centroids = df[df['type'] == 'centroid']
+        centroidSize = df.groupby('centroid').nunique()['seqid']+1
+        centroidSize = centroidSize[centroidSize.index != '*'].rename("cluster_size")
+        dfout = centroids.set_index('seqid').join(centroidSize).fillna(1)
+        dfout = dfout.join(taxcount, on = 'taxid').drop(["type", "centroid"], axis = 1)
+        dfout = dfout.astype({'cluster_size' : 'int32', 'tax_size': 'int32'})
+        dfout["size"] = dfout["cluster_size"].map(str) + "/" + dfout["tax_size"].map(str)
+        dfout["rel_cluster_size"] = round(dfout["cluster_size"] / dfout["tax_size"] *100, 2)
+        dfout.to_csv(output[0], sep = '\t')
+        
 
 rule filter_seq:
     input:
@@ -176,6 +198,7 @@ rule pariwise_alignement:
         """
 
 rule collect_descriptors:
+    # REWORK pandas?
     input:
         aln = "pairwise_alignment/table.tsv",
         info = "db_info.txt"
@@ -216,7 +239,7 @@ rule collect_descriptors:
         """
 
 rule seq_sizes_raw:
-    # FIXME: Export %a%T%S once and use join to collect infos
+    # REWORK pandas?
     input:
         raw = "fasta/sequences.fa",
         trimmed = "fasta/sequences_trim.fa" if config["trim_primers"] == True else "fasta/sequences.fa"
@@ -301,7 +324,8 @@ rule write_report:
         sizedist = "reports/sequence_lengths.txt",
         derep = "reports/dereplication.tsv",
         nderep = "reports/derep_number.txt",
-        nNfilt = "reports/high_N.txt"
+        nNfilt = "reports/high_N.txt",
+        clusterSize = "reports/cluster_size.tsv"
     output:
         "reports/report.html"
     params:
