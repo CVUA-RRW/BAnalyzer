@@ -1,4 +1,3 @@
-# TODO: Deal with ambiguous characters?
 
 shell.executable("bash")
 
@@ -63,7 +62,7 @@ rule dereplicate:
         dynamic("fastadump/{taxid}.fa")
     output:
         report = temp("derepdump/dereplication.tsv"),
-        fasta = temp("fasta/sequences.fa"),
+        fasta = temp("fasta/sequences_derep.fa"),
         tmpfa  = temp("derepdump/derep.fa"),
         tmptab = temp("derepdump/derep.txt")
     message: "Dereplicating sequences"
@@ -76,8 +75,10 @@ rule dereplicate:
                 cat $file >> {output.fasta}
             
             else
-                vsearch --derep_fulllength $file \
-                        --output {output.tmpfa} \
+                vsearch --cluster_fast $file \
+                        --id 1 \
+                        --iddef 1 \
+                        --centroids {output.tmpfa} \
                         --uc {output.tmptab} \
                         --quiet
                 
@@ -103,11 +104,28 @@ rule derep_stats:
              <(sort -k2 {input.derep}) \
              <(sort -k1 {input.table}) \
              | sed -e 's/\tH\t/\thit\t/' -e 's/\tS\t/\tcentroid\t/' \
+             | sort -k4n \
              > {output}
         
         sed -i '1 i\seqid\ttype\tcentroid\ttaxid\tname' {output}
     """
-    
+
+rule filter_seq:
+    input:
+        "fasta/sequences_derep.fa"
+    output:
+        temp("fasta/sequences.fa")
+    message: "Filtering ambiguous sequences"
+    params:
+        max_n = config["max_n"]
+    conda:
+        "envs/cutadapt.yaml"
+    shell:
+        """
+        cutadapt --max-n {params.max_n} {input} > {output}
+        """
+
+
 rule trim_primers:
     input:
         "fasta/sequences.fa"
@@ -258,17 +276,21 @@ rule seq_sizes_raw:
 
 rule db_stats:
     input:
+        unfiltered = "fasta/sequences_derep.fa",
         seq = "fasta/sequences.fa",
         table = "db_info.txt",
     output:
         taxids = temp("reports/taxids_number.txt"),
         nseq = temp("reports/seq_number.txt"),
-        derep = temp("reports/derep_number.txt")
+        derep = temp("reports/derep_number.txt"),
+        highN = temp("reports/high_N.txt")
     shell:
         """
         cut -d$'\t' -f2 {input.table} | sort -u | wc -l | cut -d$' ' -f1 > {output.taxids}
         wc -l {input.table} | cut -d$' ' -f1 > {output.nseq}
         grep -c "^>" {input.seq} > {output.derep}
+        
+        echo $(( $(grep -c "^>" {input.unfiltered}) - $(grep -c "^>" {input.seq}) )) > {output.highN}
         """
 
 rule write_report:
@@ -278,7 +300,8 @@ rule write_report:
         dist = "reports/distances.tsv",
         sizedist = "reports/sequence_lengths.txt",
         derep = "reports/dereplication.tsv",
-        nderep = "reports/derep_number.txt"
+        nderep = "reports/derep_number.txt",
+        nNfilt = "reports/high_N.txt"
     output:
         "reports/report.html"
     params:

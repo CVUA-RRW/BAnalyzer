@@ -7,3 +7,4 @@ taxdb:                  # Path to the folder containing the taxdb files
 trim_primers: False     # True to trim primers from sequences
 primers: None           # Path to the fasta file containing primer sequences, required only if trim_primers is True
 min_identity: 0.9       # Minimal identity level to compute Hamming distance (real between 0 and 1)
+max_n: 3                # Maximum number of N nucleotides allowed per sequence

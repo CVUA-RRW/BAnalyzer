@@ -38,6 +38,7 @@ nsequences <- snakemake@input[["seq"]]
 ntaxids <- snakemake@input[["taxids"]]
 derep <- snakemake@input[["derep"]]
 nderep <- snakemake@input[["nderep"]]
+nNfilt <- snakemake@input[["nNfilt"]]
 
 trimming <- snakemake@params[["trimming"]]
 database <- snakemake@params[["database"]]
@@ -52,13 +53,15 @@ primers <- snakemake@params[["primers"]]
 
 * Database path: `r database`
 
+* Run directory: `r workdir`
+
 * Number of sequences in database: `r scan(nsequences)`
 
 * Number of dereplicated sequences: `r scan(nderep)`
 
 * Number of taxids in database: `r scan(ntaxids)`
 
-* Run directory: `r workdir`
+* Number of sequences filtered out because of too high N content: `r scan(nNfilt)`
 
 * Primers were trimmed before alignment: `r trimming`
 
