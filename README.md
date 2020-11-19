@@ -59,7 +59,7 @@ Consult [snakemake's documentation](https://snakemake.readthedocs.io/en/stable/)
 The configuration file contains the following parameters:
 
 ```
-# Fill in the path belows with your own specifications:
+# Fill in the path below with your own specifications:
 workdir:                # Path to output directory
 blast_db:               # Path to BLAST-formated database
 taxdb:                  # Path to the folder containing the taxdb files
@@ -80,7 +80,7 @@ calculated only on the trimmed sequences.
 Sequences within a Taxonomic node will be clustered prior to the alignement and calculation of the Hamming distance.
 This allows to reduce redundancy in the database. Dereplication is performed by grouping 
 sequences with 100% identity **within a taxonomic node**. 
-Note that alignement of ambiguous nucleotides **always** does not incure a penalty. Therefore sequences
+Note that alignement of ambiguous nucleotides **never** incures a penalty. Therefore sequences
 containing ambiguous nuclotides can be clustered with sequences that contain strict nucleotide (A, T, U, C, G). 
 
 ## Output
