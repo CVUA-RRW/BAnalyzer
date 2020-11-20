@@ -79,26 +79,32 @@ Pairwise comparison of sequences with less than `r identity*100`% identity was n
 
 ```{r distances}
 data_table <- read.csv(file = distanceTable, sep = '\t', check.names = FALSE)
-datatable(data_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
-		extensions= list("ColReorder" = NULL, "Buttons" = NULL),
-		options = list(	
-					dom = 'BRrlftpi',
-					autoWidth=FALSE,
-					scrollX = TRUE,
-					lengthMenu = list(c(10, 50, 100, -1), c('10', '50', '100', 'All')),
-					ColReorder = TRUE,
-					buttons =
-					list(
-						'copy',
-						'print',
-						list(
-						extend = 'collection',
-						buttons = c('csv', 'excel', 'pdf'),
-						text = 'Download'
-						),
-						I('colvis')
+full_table <- data_table %>% rename (query = target, query_name = target_name, query_taxid = target_taxid,
+									target = query, target_name = query_name, target_taxid = query_taxid) %>%
+							bind_rows(data_table)
+
+datatable(full_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
+		extensions= c("ColReorder", "Buttons"),
+		selection = 'none',
+		options = list(dom = 'BRrlftpi',
+						autoWidth=FALSE,
+						scrollX = TRUE,
+						lengthMenu = list(c(10, 50, 100, 500), 
+										  c('10', '50', '100', '500')),
+						ColReorder = TRUE,
+						buttons = list('copy',
+										'print',
+										list(
+										extend = 'collection',
+										buttons = c('csv', 'excel', 'pdf'),
+										text = 'Download'
+										),
+										I('colvis')
+										),
+						deferRender = TRUE,
+						scroller = TRUE
 						)
-						))
+		)
 ```
 
 

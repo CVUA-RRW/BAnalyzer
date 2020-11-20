@@ -75,7 +75,7 @@ If choosing to trim primer sequences from the barcodes, both the original and
 trimmed length will be shown in the report, but the Hamming-distance will be 
 calculated only on the trimmed sequences.
 
-### Taxid-wise clustering
+## Taxid-wise clustering
 
 Sequences within a Taxonomic node will be clustered prior to the alignement and calculation of the Hamming distance.
 This allows to reduce redundancy in the database. Dereplication is performed by grouping 
