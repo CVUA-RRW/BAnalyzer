@@ -228,7 +228,6 @@ datatable(clusize_table, filter = list(position = 'top'), rownames = FALSE, esca
 						),
 						I('colvis')
 						),
-					,
 					deferRender = TRUE,
 					scroller = TRUE
 						))
