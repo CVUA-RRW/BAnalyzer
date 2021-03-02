@@ -18,7 +18,7 @@ or using 'git clone':
 
 ```bash
 cd path/to/repo/
-git clone https://github.com/CVUA-RRW/BAnalyzer.git
+git clone --recurse-submodules https://github.com/CVUA-RRW/BAnalyzer.git
 ```
 
 Set up a conda environment containing snakemake, python and the pandas library and activate it:

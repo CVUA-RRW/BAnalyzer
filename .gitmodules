@@ -1,0 +1,6 @@
+[submodule "scripts/--force"]
+	path = scripts/--force
+	url = https://github.com/CVUA-RRW/taxidTools
+[submodule "taxidTools"]
+	path = taxidTools
+	url = https://github.com/CVUA-RRW/taxidTools

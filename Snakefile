@@ -309,6 +309,16 @@ rule db_stats:
         
         echo $(( $(grep -c "^>" {input.unfiltered}) - $(grep -c "^>" {input.seq}) )) > {output.highN}
         """
+        
+rule get_consensus_level:
+    input:
+        distance_table = "reports/distances.tsv",
+    output:
+        cons = "reports/consensus.tsv"
+    message:
+        "Determining consensus ranks"
+    script:
+        "../scripts/consensus_levels.py"
 
 rule write_report:
     input:
