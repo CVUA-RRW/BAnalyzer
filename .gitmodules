@@ -4,3 +4,6 @@
 [submodule "taxidTools"]
 	path = taxidTools
 	url = https://github.com/CVUA-RRW/taxidTools
+[submodule "scripts/taxidTools"]
+	path = scripts/taxidTools
+	url = https://github.com/CVUA-RRW/taxidTools

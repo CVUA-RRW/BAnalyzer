@@ -40,6 +40,7 @@ derep <- snakemake@input[["derep"]]
 nderep <- snakemake@input[["nderep"]]
 nNfilt <- snakemake@input[["nNfilt"]]
 clusterSize <- snakemake@input[["clusterSize"]]
+consensus <- snakemake@input[["consensus"]]
 
 trimming <- snakemake@params[["trimming"]]
 database <- snakemake@params[["database"]]
@@ -68,6 +69,37 @@ primers <- snakemake@params[["primers"]]
 
 ```{r primer_file, results='asis', eval=trimming}
 cat("* Primer file: ", primers) 
+```
+
+## Consensus ranks
+
+Achievable Taxonomic resolution for each sequence cluster at different distance (number of mismatch) levels.
+
+```{r consensus}
+data_table <- read.csv(file = consensus, sep = '\t', check.names = FALSE)
+
+datatable(data_table, filter = list(position = 'top'), rownames = FALSE, escape = FALSE,
+		extensions= c("ColReorder", "Buttons"),
+		selection = 'none',
+		options = list(dom = 'BRrlftpi',
+						autoWidth=FALSE, 
+						scrollX = TRUE,
+						lengthMenu = list(c(50, 100, 500, -1), 
+										  c('50', '100', '500', 'All')),
+						ColReorder = TRUE,
+						buttons = list('copy',
+										'print',
+										list(
+										extend = 'collection',
+										buttons = c('csv', 'excel', 'pdf'),
+										text = 'Download'
+										),
+										I('colvis')
+										),
+						deferRender = TRUE,
+						scroller = TRUE
+						)
+		)
 ```
 
 ## Pairwise distances
