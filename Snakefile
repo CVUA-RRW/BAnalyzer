@@ -318,8 +318,8 @@ rule get_consensus_level:
     message:
         "Determining consensus ranks"
     params:
-        lineage = config["taxonomy"]["rankedlineage_dmp"],
-        nodes = config["taxonomy"]["nodes_dmp"],
+        lineage = config["rankedlineage_dmp"],
+        nodes = config["nodes_dmp"],
     script:
         "../scripts/consensus_levels.py"
 
@@ -332,8 +332,8 @@ rule write_report:
         derep = "reports/dereplication.tsv",
         nderep = "reports/derep_number.txt",
         nNfilt = "reports/high_N.txt",
-        clusterSize = "reports/cluster_size.tsv"
-        consensus = "reports/consensus.tsv"
+        clusterSize = "reports/cluster_size.tsv",
+        consensus = "reports/consensus.tsv",
     output:
         "reports/report.html"
     params:

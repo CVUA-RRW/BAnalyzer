@@ -2,6 +2,8 @@
 workdir:                # Path to output directory
 blast_db:               # Path to BLAST-formated database
 taxdb:                  # Path to the folder containing the taxdb files
+rankedlineage_dmp:      # Path to rankedlineage.dmp
+nodes_dmp:              # Path to nodes.dmp
 
 # Modify the parameters below:
 trim_primers: False     # True to trim primers from sequences

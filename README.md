@@ -21,10 +21,9 @@ cd path/to/repo/
 git clone --recurse-submodules https://github.com/CVUA-RRW/BAnalyzer.git
 ```
 
-Set up a conda environment containing snakemake, python and the pandas library and activate it:
-
+Set up a conda environment containing snakemake (version 6 not supported), python and the pandas library and activate it:
 ```bash
-conda create --name snakemake -c bioconda -c anaconda snakemake pandas
+conda create --name snakemake -c bioconda -c anaconda "snakemake>=5.10,<6.0" pandas
 conda activate snakemake
 ```
 
@@ -37,8 +36,10 @@ to know how to format it.
 If you want to extract barcodes from a database of reference genomes you can check out 
 our [RRW-PrimerBLAST](https://github.com/CVUA-RRW/RRW-PrimerBLAST) pipeline.
 
-You will also need to provide the [taxdb](https://ftp.ncbi.nlm.nih.gov/blast/db/taxdb.tar.gz) 
+You will also need to provide the [taxdb](https://ftp.ncbi.nlm.nih.gov/blast/db/taxdb.tar.gz) and 
+[taxdump](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz)
 files available from the NCBI server.
+
 
 ### Running BAnalyzer
 
@@ -63,6 +64,8 @@ The configuration file contains the following parameters:
 workdir:                # Path to output directory
 blast_db:               # Path to BLAST-formated database
 taxdb:                  # Path to the folder containing the taxdb files
+rankedlineage_dmp:      # Path to rankedlineage.dmp
+nodes_dmp:              # Path to nodes.dmp
 
 # Modify the parameters below:
 trim_primers: False     # True to trim primers from sequences
