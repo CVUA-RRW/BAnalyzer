@@ -321,7 +321,7 @@ rule get_consensus_level:
         lineage = config["rankedlineage_dmp"],
         nodes = config["nodes_dmp"],
     script:
-        "../scripts/consensus_levels.py"
+        "scripts/consensus_levels.py"
 
 rule write_report:
     input:
